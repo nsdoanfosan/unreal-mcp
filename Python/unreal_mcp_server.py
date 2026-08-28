@@ -48,7 +48,7 @@ class UnrealConnection:
             
             logger.info(f"Connecting to Unreal at {UNREAL_HOST}:{UNREAL_PORT}...")
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(5)  # 5 second timeout
+            self.socket.settimeout(30)  # Large graph inspections can take several seconds.
             
             # Set socket options for better stability
             self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -81,7 +81,7 @@ class UnrealConnection:
     def receive_full_response(self, sock, buffer_size=4096) -> bytes:
         """Receive a complete response from Unreal, handling chunked data."""
         chunks = []
-        sock.settimeout(5)  # 5 second timeout
+        sock.settimeout(30)  # Large graph inspections can return sizeable JSON payloads.
         try:
             while True:
                 chunk = sock.recv(buffer_size)
@@ -270,6 +270,8 @@ from tools.editor_tools import register_editor_tools
 from tools.blueprint_tools import register_blueprint_tools
 from tools.node_tools import register_blueprint_node_tools
 from tools.project_tools import register_project_tools
+from tools.material_tools import register_material_tools
+from tools.cloth_tools import register_cloth_tools
 from tools.umg_tools import register_umg_tools
 
 # Register tools
@@ -277,6 +279,8 @@ register_editor_tools(mcp)
 register_blueprint_tools(mcp)
 register_blueprint_node_tools(mcp)
 register_project_tools(mcp)
+register_material_tools(mcp)
+register_cloth_tools(mcp)
 register_umg_tools(mcp)  
 
 @mcp.prompt()
@@ -374,4 +378,4 @@ def info():
 # Run the server
 if __name__ == "__main__":
     logger.info("Starting MCP server with stdio transport")
-    mcp.run(transport='stdio') 
+    mcp.run(transport='stdio')
