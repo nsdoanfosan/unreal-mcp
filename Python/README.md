@@ -35,6 +35,14 @@ You should make sure you have installed dependencies and/or are running in the `
 - Make sure Unreal Engine editor is loaded loaded and running before running the server.
 - Check logs in `unreal_mcp.log` for detailed error information
 
+The command client connects only for an actual tool request and closes the socket
+after its response. Do not add a startup connection or a null-byte health check:
+the editor's TCP bridge handles one client at a time, so an idle startup socket
+can fill the accept backlog and make other chats fail with WinError 10061.
+Concurrent calls in one Python process are serialized. A failed mutation is never
+automatically replayed. Transport regressions run with
+`python -m unittest discover -s tests -p test_startup_transport.py`.
+
 ## Development
 
 To add new tools, modify the `UnrealMCPBridge.py` file to add new command handlers, and update the `unreal_mcp_server.py` file to expose them through the HTTP API. 
