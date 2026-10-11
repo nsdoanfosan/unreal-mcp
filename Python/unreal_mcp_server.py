@@ -8,6 +8,7 @@ import logging
 import socket
 import sys
 import json
+import threading
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
@@ -34,6 +35,7 @@ class UnrealConnection:
         """Initialize the connection."""
         self.socket = None
         self.connected = False
+        self._command_lock = threading.Lock()
     
     def connect(self) -> bool:
         """Connect to the Unreal Engine instance."""
@@ -125,6 +127,10 @@ class UnrealConnection:
     
     def send_command(self, command: str, params: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
         """Send a command to Unreal Engine and get the response."""
+        with self._command_lock:
+            return self._send_command(command, params)
+
+    def _send_command(self, command: str, params: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
         # Always reconnect for each command, since Unreal closes the connection after each command
         # This is different from Unity which keeps connections alive
         if self.socket:
@@ -202,38 +208,20 @@ class UnrealConnection:
 
 # Global connection state
 _unreal_connection: UnrealConnection = None
+_unreal_connection_lock = threading.Lock()
 
 def get_unreal_connection() -> Optional[UnrealConnection]:
-    """Get the connection to Unreal Engine."""
+    """Return a lazy command client without reserving the editor's TCP socket.
+
+    The editor accepts one client at a time. An idle startup connection blocks
+    every other MCP process, even though no tool is running. send_command()
+    owns the connect/send/receive/disconnect lifecycle instead.
+    """
     global _unreal_connection
-    try:
+    with _unreal_connection_lock:
         if _unreal_connection is None:
             _unreal_connection = UnrealConnection()
-            if not _unreal_connection.connect():
-                logger.warning("Could not connect to Unreal Engine")
-                _unreal_connection = None
-        else:
-            # Verify connection is still valid with a ping-like test
-            try:
-                # Simple test by sending an empty buffer to check if socket is still connected
-                _unreal_connection.socket.sendall(b'\x00')
-                logger.debug("Connection verified with ping test")
-            except Exception as e:
-                logger.warning(f"Existing connection failed: {e}")
-                _unreal_connection.disconnect()
-                _unreal_connection = None
-                # Try to reconnect
-                _unreal_connection = UnrealConnection()
-                if not _unreal_connection.connect():
-                    logger.warning("Could not reconnect to Unreal Engine")
-                    _unreal_connection = None
-                else:
-                    logger.info("Successfully reconnected to Unreal Engine")
-        
         return _unreal_connection
-    except Exception as e:
-        logger.error(f"Error getting Unreal connection: {e}")
-        return None
 
 @asynccontextmanager
 async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
@@ -243,7 +231,7 @@ async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
     try:
         _unreal_connection = get_unreal_connection()
         if _unreal_connection:
-            logger.info("Connected to Unreal Engine on startup")
+            logger.info("Unreal command client ready; editor connection deferred until a tool call")
         else:
             logger.warning("Could not connect to Unreal Engine on startup")
     except Exception as e:
