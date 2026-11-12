@@ -232,56 +232,6 @@ def register_blueprint_node_tools(mcp: FastMCP):
             return {"success": False, "message": error_msg}
     
     @mcp.tool()
-    def add_blueprint_variable(
-        ctx: Context,
-        blueprint_name: str,
-        variable_name: str,
-        variable_type: str,
-        is_exposed: bool = False
-    ) -> Dict[str, Any]:
-        """
-        Add a variable to a Blueprint.
-        
-        Args:
-            blueprint_name: Name of the target Blueprint
-            variable_name: Name of the variable
-            variable_type: Type of the variable (Boolean, Integer, Float, Vector, etc.)
-            is_exposed: Whether to expose the variable to the editor
-            
-        Returns:
-            Response indicating success or failure
-        """
-        from unreal_mcp_server import get_unreal_connection
-        
-        try:
-            params = {
-                "blueprint_name": blueprint_name,
-                "variable_name": variable_name,
-                "variable_type": variable_type,
-                "is_exposed": is_exposed
-            }
-            
-            unreal = get_unreal_connection()
-            if not unreal:
-                logger.error("Failed to connect to Unreal Engine")
-                return {"success": False, "message": "Failed to connect to Unreal Engine"}
-            
-            logger.info(f"Adding variable '{variable_name}' to blueprint '{blueprint_name}'")
-            response = unreal.send_command("add_blueprint_variable", params)
-            
-            if not response:
-                logger.error("No response from Unreal Engine")
-                return {"success": False, "message": "No response from Unreal Engine"}
-            
-            logger.info(f"Variable creation response: {response}")
-            return response
-            
-        except Exception as e:
-            error_msg = f"Error adding variable: {e}"
-            logger.error(error_msg)
-            return {"success": False, "message": error_msg}
-    
-    @mcp.tool()
     def add_blueprint_get_self_component_reference(
         ctx: Context,
         blueprint_name: str,
