@@ -15,39 +15,6 @@ def register_blueprint_tools(mcp: FastMCP):
     """Register Blueprint tools with the MCP server."""
     
     @mcp.tool()
-    def create_blueprint(
-        ctx: Context,
-        name: str,
-        parent_class: str
-    ) -> Dict[str, Any]:
-        """Create a new Blueprint class."""
-        # Import inside function to avoid circular imports
-        from unreal_mcp_server import get_unreal_connection
-        
-        try:
-            unreal = get_unreal_connection()
-            if not unreal:
-                logger.error("Failed to connect to Unreal Engine")
-                return {"success": False, "message": "Failed to connect to Unreal Engine"}
-                
-            response = unreal.send_command("create_blueprint", {
-                "name": name,
-                "parent_class": parent_class
-            })
-            
-            if not response:
-                logger.error("No response from Unreal Engine")
-                return {"success": False, "message": "No response from Unreal Engine"}
-            
-            logger.info(f"Blueprint creation response: {response}")
-            return response or {}
-            
-        except Exception as e:
-            error_msg = f"Error creating blueprint: {e}"
-            logger.error(error_msg)
-            return {"success": False, "message": error_msg}
-    
-    @mcp.tool()
     def add_component_to_blueprint(
         ctx: Context,
         blueprint_name: str,
@@ -250,39 +217,6 @@ def register_blueprint_tools(mcp: FastMCP):
             logger.error(error_msg)
             return {"success": False, "message": error_msg}
     
-    @mcp.tool()
-    def compile_blueprint(
-        ctx: Context,
-        blueprint_name: str
-    ) -> Dict[str, Any]:
-        """Compile a Blueprint."""
-        from unreal_mcp_server import get_unreal_connection
-        
-        try:
-            unreal = get_unreal_connection()
-            if not unreal:
-                logger.error("Failed to connect to Unreal Engine")
-                return {"success": False, "message": "Failed to connect to Unreal Engine"}
-            
-            params = {
-                "blueprint_name": blueprint_name
-            }
-            
-            logger.info(f"Compiling blueprint: {blueprint_name}")
-            response = unreal.send_command("compile_blueprint", params)
-            
-            if not response:
-                logger.error("No response from Unreal Engine")
-                return {"success": False, "message": "No response from Unreal Engine"}
-            
-            logger.info(f"Compile blueprint response: {response}")
-            return response
-            
-        except Exception as e:
-            error_msg = f"Error compiling blueprint: {e}"
-            logger.error(error_msg)
-            return {"success": False, "message": error_msg}
-
     @mcp.tool()
     def set_blueprint_property(
         ctx: Context,
